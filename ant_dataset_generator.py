@@ -1,5 +1,5 @@
 """
-Ant polymorphism simulation -> ML training dataset (v1.11)
+Ant polymorphism simulation -> ML training dataset
 
 Generates a CSV in which every row is ONE parameter combination (sampled with a
 space-filling Latin hypercube design) together with summary statistics of the
@@ -9,7 +9,7 @@ Command line (example):
 
     python ant_dataset.py --n-samples 2000 --reps 20 --workers 4 --out ant_ml_dataset.csv
 
-The run can be interrupted at any time (Ctrl-C / kernel stop) and resumed by
+The run can be interrupted at any time (kernel stop) and resumed by
 calling the same command again: finished rows are already on disk.
 """
 
@@ -40,8 +40,8 @@ PARAM_SPACE: dict[str, tuple[float, float, bool]] = {
     "zw": (0.0, 1.0, False),    # baseline worker phenotype
     "dw": (0.0, 1.0, False),    # heterozygote weight, workers
     "dq": (0.0, 1.0, False),    # dominance, queens
-    "sw": (-0.1, 0.1, False),   # phenotype scaling (negative = costly allele)
-    "Nq": (1, 10, True),         # queens per deme
+    "sw": (-0.1, 0.1, False),   # phenotype scaling (mutation effect)
+    "Nq": (1, 10, True),        # queens per deme
     "Nm": (1, 20, True),        # matings per new queen
 }
 
