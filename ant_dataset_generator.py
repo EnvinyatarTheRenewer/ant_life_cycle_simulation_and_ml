@@ -27,6 +27,7 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -133,7 +134,7 @@ def fecundity(phenotype_q, phenotype_w):
 
 
 def _cdf(p: np.ndarray) -> np.ndarray:
-    """Normalised cumulative distribution (identical to what Generator.choice builds)."""
+    """Normalised cumulative distribution."""
     cdf = np.cumsum(p)
     cdf /= cdf[-1]
     return cdf
@@ -251,7 +252,6 @@ def simulate_replicate(Nd, Nq, Nm, s, e, m, T, ic, zw, zq, sq, sw, dq, dw,
                     sperm = float(rng.binomial(Nm, local_av) / Nm)
                     src_q = _draw(rng, local_cdf) if local_cdf is not None else int(rng.integers(Nq))
                     maternal = float(past[i, src_q, rng.integers(2)])
-                    # NOTE: reads the *current* sperm value (as in the original code).
                     paternal = 1.0 if rng.random() < demes[i, src_q, 2] else 0.0
 
                 demes[i, qspot, 0] = maternal
@@ -285,7 +285,7 @@ def summarise(finals: np.ndarray) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Worker + driver
+# Workers
 # ---------------------------------------------------------------------------
 
 def _run_sample(task: tuple) -> tuple:
