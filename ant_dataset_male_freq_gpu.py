@@ -5,10 +5,10 @@ Same model, parameter space and CSV columns as ant_dataset_male_freq.py. Put bot
 the same folder: this file imports the design, validation and target code from it, so there
 is a single source of truth (read that file's docstring for the model).
 
-Apple-silicon Mac (Metal / MPS):
+GPU safety:
 
     pip install torch numpy pandas tqdm
-    python ant_dataset_male_freq_gpu.py --selftest                       # 1-2 min check of your GPU
+    python ant_dataset_male_freq_gpu.py --selftest                  # 1-2 min check of your GPU
     python ant_dataset_male_freq_gpu.py --n-samples 2000 --reps 100 --out ant_male_freq_gpu.csv
 
 Device: automatic (mps -> cuda -> cpu); force one with --device mps|cuda|cpu.
@@ -31,6 +31,8 @@ Memory: a batch of 500 replicates uses a few hundred MB. If you get an out-of-me
 lower --rows-per-batch (the failing batch is skipped with a warning and the run continues).
 """
 
+### --- Useful Libraries --- ###
+
 from __future__ import annotations
 import argparse
 import csv
@@ -51,17 +53,14 @@ from tqdm.auto import tqdm
 
 try:
     import torch
-except ImportError:  # reported cleanly by generate_dataset_gpu
+except ImportError:  # Reported cleanly by generate_dataset_gpu.
     torch = None
 
-import ant_dataset_male_freq as cpu  # shared design, validation, targets, defaults
+import ant_dataset_male_freq as cpu  # Shared design, validation, targets, defaults.
 
 FLOAT_KEYS = ("s", "e", "mq", "mm", "zw", "zq", "zm", "sq", "sw", "sm", "dq", "dw", "om")
 
-
-# ---------------------------------------------------------------------------
-# Device
-# ---------------------------------------------------------------------------
+### --- Device --- ###
 
 def pick_device(name: str = "auto"):
     """Returns (torch.device | None, message)."""
@@ -79,17 +78,13 @@ def pick_device(name: str = "auto"):
     except Exception as exc:
         return None, f"Cannot use device '{name}': {exc}"
 
-
-# ---------------------------------------------------------------------------
-# Batched simulation
-# ---------------------------------------------------------------------------
+### --- Batched Simulation --- ###
 
 def _select(f, sA, sa):
     """Fraction of A males after selection (see the CPU file); unchanged if no male survives.
     sA, sa broadcast against f."""
     den = f * sA + (1.0 - f) * sa
     return torch.where(den > 0, f * sA / torch.where(den > 0, den, torch.ones_like(den)), f)
-
 
 def simulate_batch(rows: dict, Nd: int, T: int, ic: int, male_exponent: float, device,
                    early_stop: bool = True, seed: int = 0) -> np.ndarray:
@@ -109,16 +104,16 @@ def simulate_batch(rows: dict, Nd: int, T: int, ic: int, male_exponent: float, d
     arange_d = torch.arange(Nd, device=device)
     arange_m = torch.arange(NM, device=device)
 
-    def male_surv(z):                                          # 1 - min(|om - z|, 1) ** exponent
+    def male_surv(z):                                          # 1 - min(|om - z|, 1) ** exponent.
         return (1.0 - (P["om"] - z).abs().clamp_max(1.0) ** male_exponent).clamp_min(0.0)
 
-    slot_ok = torch.arange(NQ, device=device)[None, None, :] < Nq_b[:, None, None]   # (B,1,NQ) real slots
+    slot_ok = torch.arange(NQ, device=device)[None, None, :] < Nq_b[:, None, None]   # (B,1,NQ) real slots.
     slotf = slot_ok.to(dt)
     alleles = torch.zeros(B0, Nd, NQ, 2, device=device, dtype=dt)
     if ic > 0:
-        alleles[:, :ic, 0, 0] = 1.0                            # seed A in queen 1 of the first ic demes
+        alleles[:, :ic, 0, 0] = 1.0                            # Seed A in queen 1 of the first ic demes.
     sperm = torch.zeros(B0, Nd, NQ, device=device, dtype=dt)
-    wp = P["zw"][:, None].expand(B0, Nd).clone()               # worker phenotype per deme
+    wp = P["zw"][:, None].expand(B0, Nd).clone()               # Worker phenotype per deme.
     surv_a, surv_A = male_surv(P["zm"]), male_surv(P["zm"] + P["sm"])
     row_id = torch.arange(B0, device=device)
     done = torch.zeros(B0, dtype=torch.bool, device=device)
@@ -126,7 +121,7 @@ def simulate_batch(rows: dict, Nd: int, T: int, ic: int, male_exponent: float, d
     pA = None
 
     for gen in range(T):
-        # ---- drop finished replicates from the batch (every 20 generations) --------
+        # ---- Drop finished replicates from the batch (every 20 generations). --------
         if gen > 0 and gen % 20 == 0 and float(done.float().mean()) > 0.25:
             keep = ~done
             P = {k: v[keep] for k, v in P.items()}
@@ -140,7 +135,7 @@ def simulate_batch(rows: dict, Nd: int, T: int, ic: int, male_exponent: float, d
         # ---- 1. Extinction -------------------------------------------------------
         extinct = torch.rand(Bc, Nd, device=device) < P["e"][:, None]
         alive = ~extinct
-        skip = ~alive.any(dim=1)                               # every deme extinct: roll back
+        skip = ~alive.any(dim=1)                               # Every deme extinct: roll back.
 
         # ---- 2. Phenotypes and fecundities -----------------------------------------
         a0, a1 = alleles[..., 0], alleles[..., 1]
@@ -166,7 +161,7 @@ def simulate_batch(rows: dict, Nd: int, T: int, ic: int, male_exponent: float, d
         replace = slot_ok & (extinct[:, :, None] | (torch.rand(Bc, Nd, NQ, device=device) > c3(P["s"])))
 
         # ---- 4. Mother of each new queen: local, or migrant from another deme -----------
-        dmf = fec.sum(2) / Nq_b.to(dt)[:, None]                # deme mean fecundity (0 if extinct)
+        dmf = fec.sum(2) / Nq_b.to(dt)[:, None]                # Deme mean fecundity (0 if extinct).
         cnt_oth = alive.sum(1, keepdim=True).to(dt) - alive.to(dt)
         imm_mean = torch.where(cnt_oth > 0, (dmf.sum(1, keepdim=True) - dmf) / cnt_oth.clamp_min(1.0),
                                torch.zeros_like(dmf))
@@ -176,7 +171,7 @@ def simulate_batch(rows: dict, Nd: int, T: int, ic: int, male_exponent: float, d
                             torch.full_like(denom, 0.5))
         cum = dmf.cumsum(1)
         W = cum[:, -1:]
-        can_imm = (W - dmf) > 1e-6                             # another deme can supply a mother
+        can_imm = (W - dmf) > 1e-6                             # Another deme can supply a mother.
         go_imm = can_imm[:, :, None] & (torch.rand(Bc, Nd, NQ, device=device) < p_imm[:, :, None])
 
         u = torch.rand(Bc, Nd, NQ, device=device) * (W - dmf)[:, :, None]
@@ -185,14 +180,14 @@ def simulate_batch(rows: dict, Nd: int, T: int, ic: int, male_exponent: float, d
                                     right=True).reshape(Bc, Nd, NQ).clamp_max(Nd - 1)
         src = torch.where(go_imm, src_im, arange_d[None, :, None].expand(Bc, Nd, NQ))
 
-        # mother queen inside the source deme: fecundity-weighted (uniform if the deme has none)
+        # Mother queen inside the source deme: fecundity-weighted (uniform if the deme has none).
         src_w = torch.where((fec.sum(2) > 0)[:, :, None], fec, slotf.expand(Bc, Nd, NQ))
         cdf_q = (src_w / src_w.sum(2, keepdim=True)).cumsum(2)
         flat_src = (torch.arange(Bc, device=device)[:, None, None] * Nd + src).reshape(-1)
         cdf_src = cdf_q.reshape(Bc * Nd, NQ)[flat_src].reshape(Bc, Nd, NQ, NQ)
         q_src = (torch.rand(Bc, Nd, NQ, 1, device=device) >= cdf_src).sum(3)
         q_src = torch.minimum(q_src, (Nq_b - 1)[:, None, None])
-        mom = flat_src * NQ + q_src.reshape(-1)                # flat index of the mother's slot
+        mom = flat_src * NQ + q_src.reshape(-1)                # Flat index of the mother's slot.
         pair = alleles.reshape(-1, 2)[mom].reshape(Bc, Nd, NQ, 2)
         mat = torch.where(torch.rand(Bc, Nd, NQ, device=device) < 0.5, pair[..., 1], pair[..., 0])
         pat = (torch.rand(Bc, Nd, NQ, device=device) < sperm.reshape(-1)[mom].reshape(Bc, Nd, NQ)).to(dt)
@@ -229,11 +224,10 @@ def simulate_batch(rows: dict, Nd: int, T: int, ic: int, male_exponent: float, d
                 if bool(done.all()):
                     return final
 
-    rem = ~done                                                # reached T: record the last state
+    rem = ~done                                                # Reached T: record the last state.
     if pA is not None and bool(rem.any()):
         final[row_id[rem].cpu().numpy()] = pA[rem].cpu().numpy()
     return final
-
 
 # ---------------------------------------------------------------------------
 # Dataset generation
@@ -251,7 +245,13 @@ def generate_dataset_gpu(n_samples: int, out_path: str | None = None, seed: int 
 
     rows_per_batch : replicates simulated together (parameter sets per batch = rows // reps,
                      at least 1). Larger = faster until the GPU is saturated or memory runs out.
-    Other arguments: see ant_dataset_male_freq.generate_dataset.
+    n_samples     : number of parameter combinations (rows), e.g. 3000
+    out_path      : CSV location. Default: ant_male_freq_dataset_<n_samples>.csv in the current folder
+    reps          : replicate simulations per combination (more reps = less noisy targets)
+    workers       : processes to use (default: all CPU cores; 1 = no multiprocessing)
+    resume        : continue an interrupted run with identical settings
+    early_stop    : stop a replicate once the allele is fixed or lost (absorbing states)
+    male_exponent : male survival = 1 - distance ** male_exponent (see module docstring)
     """
     dev, msg = pick_device(device)
     if dev is None:
@@ -331,7 +331,7 @@ def generate_dataset_gpu(n_samples: int, out_path: str | None = None, seed: int 
                 batch_seed = (seed * 1_000_003 + chunk[0][0]) % (2 ** 31)
                 try:
                     finals = simulate_batch(rows, Nd, T, ic, male_exponent, dev, early_stop, batch_seed)
-                except Exception as exc:  # e.g. out of memory: skip the batch, keep the run alive
+                except Exception as exc:  # E.g. out of memory: skip the batch, keep the run alive.
                     for sid, _ in chunk:
                         skipped.append((sid, f"{type(exc).__name__}: {exc}"))
                     warnings.warn(f"batch starting at sample {chunk[0][0]} skipped: {type(exc).__name__}: {exc}"
@@ -354,10 +354,7 @@ def generate_dataset_gpu(n_samples: int, out_path: str | None = None, seed: int 
         msg += f" {len(skipped)} sample(s) skipped (ids: {[s for s, _ in skipped][:10]}...)."
     return True, msg
 
-
-# ---------------------------------------------------------------------------
-# Self-test: GPU model vs the CPU model on a few parameter sets
-# ---------------------------------------------------------------------------
+### --- Self-test: GPU model vs the CPU model --- ###
 
 def selftest(device: str = "auto", reps: int = 300, Nd: int = 40, T: int = 150) -> bool:
     """Run the same parameter sets through the CPU and GPU models and compare the targets."""
@@ -390,10 +387,7 @@ def selftest(device: str = "auto", reps: int = 300, Nd: int = 40, T: int = 150) 
     print("SELFTEST PASSED" if ok_all else "SELFTEST: differences found (rerun with more --reps before worrying)")
     return ok_all
 
-
-# ---------------------------------------------------------------------------
-# Command line
-# ---------------------------------------------------------------------------
+### --- Command Lines --- ###
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Generate the ant-polymorphism ML dataset on the GPU (male selection on the allele fraction).")
@@ -425,7 +419,6 @@ def main() -> None:
                                    rows_per_batch=a.rows_per_batch)
     print(msg)
     raise SystemExit(0 if ok else 1)
-
 
 if __name__ == "__main__":
     main()

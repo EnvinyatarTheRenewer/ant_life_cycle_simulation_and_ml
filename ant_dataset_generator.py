@@ -1,17 +1,15 @@
 """
 Ant polymorphism simulation -> ML training dataset
 
-Generates a CSV in which every row is ONE parameter combination (sampled with a
+Generates a CSV in which every row is one parameter combination (sampled with a
 space-filling Latin hypercube design) together with summary statistics of the
 final allele frequency p(A) over `reps` replicate simulations.
 
-Command line (example):
-
-    python ant_dataset.py --n-samples 2000 --reps 20 --workers 4 --out ant_ml_dataset.csv
-
-The run can be interrupted at any time (kernel stop) and resumed by
-calling the same command again: finished rows are already on disk.
+The run can be interrupted at any time (kernel stop) and resumed (using resume = True) 
+by calling the same command again: finished rows are already on disk.
 """
+
+### --- Useful Libraries --- ###
 
 from __future__ import annotations
 import argparse
@@ -27,28 +25,25 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 
-
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
+### --- Configuration --- ###
 
 # name: (low, high, is_integer).  Edit these ranges to change the explored space.
 # A parameter with low == high is simply held fixed.
 PARAM_SPACE: dict[str, tuple[float, float, bool]] = {
-    "s":  (0.0, 1.0, False),    # queen survival probability
-    "e":  (0.0, 1.0, False),    # deme extinction probability
-    "m":  (0.0, 1.0, False),    # migration weight
-    "zw": (0.0, 1.0, False),    # baseline worker phenotype
-    "dw": (0.0, 1.0, False),    # heterozygote weight, workers
-    "dq": (0.0, 1.0, False),    # dominance, queens
-    "sw": (-0.1, 0.1, False),   # phenotype scaling (mutation effect)
-    "Nq": (1, 10, True),        # queens per deme
-    "Nm": (1, 20, True),        # matings per new queen
+    "s":  (0.0, 1.0, False),    # Queen survival probability.
+    "e":  (0.0, 1.0, False),    # Deme extinction probability.
+    "m":  (0.0, 1.0, False),    # Migration weight.
+    "zw": (0.0, 1.0, False),    # Baseline worker phenotype (= queen).
+    "dw": (0.0, 1.0, False),    # Dominance for workers.
+    "dq": (0.0, 1.0, False),    # Dominance for queens.
+    "sw": (-0.1, 0.1, False),   # Phenotype scaling (mutation effect).
+    "Nq": (1, 10, True),        # Queens per deme.
+    "Nm": (1, 20, True),        # Matings per new queen.
 }
 
-# Parameters forced to equal another sampled one (as in the original sweeps,
-# where zq == zw and sq == sw). Empty this dict to sample them independently
-# (then also add "zq" and "sq" to PARAM_SPACE).
+# Parameters forced to equal another sampled one zq == zw and sq == sw). 
+# Empty this dict to sample them independently (then also add "zq" and 
+# "sq" to PARAM_SPACE).
 TIED: dict[str, str] = {"zq": "zw", "sq": "sw"}
 
 # Fixed simulation settings (not part of the ML feature space).
@@ -58,10 +53,7 @@ FEATURE_COLUMNS = ["s", "e", "m", "zw", "zq", "dw", "dq", "sw", "sq", "Nq", "Nm"
 TARGET_COLUMNS = ["n_reps", "mean_pA", "sd_pA", "frac_lost", "frac_fixed", "frac_polymorphic"]
 CSV_COLUMNS = ["sample_id"] + FEATURE_COLUMNS + TARGET_COLUMNS
 
-
-# ---------------------------------------------------------------------------
-# Validation
-# ---------------------------------------------------------------------------
+### --- Parameter Validation --- ###
 
 def validate_params(p: dict) -> tuple[bool, str]:
     """Check one full parameter set before simulating it."""
@@ -79,7 +71,6 @@ def validate_params(p: dict) -> tuple[bool, str]:
             return False, f"{k} must be a finite number (got {p.get(k)!r})"
     return True, ""
 
-
 def validate_space(space: dict, tied: dict) -> tuple[bool, str]:
     """Check the sampling ranges and the tie map."""
     for name, (lo, hi, _is_int) in space.items():
@@ -95,10 +86,7 @@ def validate_space(space: dict, tied: dict) -> tuple[bool, str]:
         return False, f"parameters without a range or a tie: {missing}"
     return True, ""
 
-
-# ---------------------------------------------------------------------------
-# Experimental design
-# ---------------------------------------------------------------------------
+### --- Experimental Design --- ###
 
 def build_design(n_samples: int, seed: int, space: dict, tied: dict) -> pd.DataFrame:
     """Latin hypercube sample of the parameter space (one row per sample_id)."""
@@ -123,15 +111,11 @@ def build_design(n_samples: int, seed: int, space: dict, tied: dict) -> pd.DataF
 
     return pd.DataFrame(data)[["sample_id"] + FEATURE_COLUMNS]
 
-
-# ---------------------------------------------------------------------------
-# Simulation core
-# ---------------------------------------------------------------------------
+### --- Simulation Core --- ###
 
 def fecundity(phenotype_q, phenotype_w):
     """Eusocial fecundity, vectorised: max(0, (1 - queen) * worker)."""
     return np.maximum(0.0, (1.0 - phenotype_q) * phenotype_w)
-
 
 def _cdf(p: np.ndarray) -> np.ndarray:
     """Normalised cumulative distribution."""
@@ -139,24 +123,21 @@ def _cdf(p: np.ndarray) -> np.ndarray:
     cdf /= cdf[-1]
     return cdf
 
-
 def _draw(rng: np.random.Generator, cdf: np.ndarray) -> int:
     """Weighted index draw, same random stream as rng.choice(n, p=...)."""
     return int(cdf.searchsorted(rng.random(), side="right"))
-
 
 def simulate_replicate(Nd, Nq, Nm, s, e, m, T, ic, zw, zq, sq, sw, dq, dw,
                        rng: np.random.Generator) -> float:
     """
     One replicate: returns the final mean p(A) across all demes and queen slots.
-
     demes[:, :, 0] maternal allele, [:, :, 1] paternal allele (0/1),
     demes[:, :, 2] sperm-pool p(A) of the queen.
     """
     demes = np.zeros((Nd, Nq, 3))
     worker_pheno = np.full(Nd, zw, dtype=float)
     if ic > 0:
-        demes[:ic, 0, 0] = 1.0  # seed the A allele in queen 1 of the first `ic` demes
+        demes[:ic, 0, 0] = 1.0  # Seed the A allele in queen 1 of the first `ic` demes.
 
     p_A = float(demes[:, :, :2].mean())
 
@@ -259,18 +240,16 @@ def simulate_replicate(Nd, Nq, Nm, s, e, m, T, ic, zw, zq, sq, sw, dq, dw,
                 demes[i, qspot, 2] = sperm
 
         p_A = float(demes[:, :, :2].mean())
-        if p_A == 0.0:       # allele lost: absorbing state (no mutation)
+        if p_A == 0.0:       # Allele lost: absorbing state (no mutation).
             break
 
     return p_A
-
 
 def final_frequencies(params: dict, rng: np.random.Generator) -> np.ndarray:
     """Final p(A) of `params['reps']` independent replicates."""
     keys = ("Nd", "Nq", "Nm", "s", "e", "m", "T", "ic", "zw", "zq", "sq", "sw", "dq", "dw")
     kwargs = {k: params[k] for k in keys}
     return np.array([simulate_replicate(**kwargs, rng=rng) for _ in range(params["reps"])])
-
 
 def summarise(finals: np.ndarray) -> dict:
     """Targets for one parameter set."""
@@ -283,10 +262,7 @@ def summarise(finals: np.ndarray) -> dict:
         "frac_polymorphic": float(np.mean((finals > 0.0) & (finals < 1.0))),
     }
 
-
-# ---------------------------------------------------------------------------
-# Workers
-# ---------------------------------------------------------------------------
+### --- Workers -- ###
 
 def _run_sample(task: tuple) -> tuple:
     """Pool worker. Returns ('ok', sample_id, row) or ('error', sample_id, message)."""
@@ -302,10 +278,8 @@ def _run_sample(task: tuple) -> tuple:
     except Exception as exc:  # keep the batch alive, report the bad sample instead
         return "error", sample_id, f"{type(exc).__name__}: {exc}"
 
-
 def _to_python(value):
     return value.item() if isinstance(value, np.generic) else value
-
 
 def generate_dataset(n_samples: int, out_path: str | None = None, seed: int = 0,
                      Nd: int = FIXED_DEFAULTS["Nd"], T: int = FIXED_DEFAULTS["T"],
@@ -340,7 +314,6 @@ def generate_dataset(n_samples: int, out_path: str | None = None, seed: int = 0,
     config = {"n_samples": n_samples, "seed": seed, **fixed,
               "space": {k: list(v) for k, v in space.items()}, "tied": tied}
 
-    # --- resume / overwrite handling ---
     done_ids: set[int] = set()
     if out.exists() and out.stat().st_size > 0:
         if not resume:
@@ -370,8 +343,6 @@ def generate_dataset(n_samples: int, out_path: str | None = None, seed: int = 0,
         return True, f"Nothing to do: all {n_samples} rows already in {out}."
 
     workers = max(1, workers or os.cpu_count() or 1)
-    # Worker processes must be able to find _run_sample. If this code was pasted into a
-    # notebook cell (instead of imported), spawned workers cannot, so use 'fork' there.
     pool_ctx = multiprocessing.get_context()
     if workers > 1 and _run_sample.__module__ == "__main__" and _running_in_notebook():
         if "fork" in multiprocessing.get_all_start_methods():
@@ -428,10 +399,7 @@ def generate_dataset(n_samples: int, out_path: str | None = None, seed: int = 0,
         msg += f" {len(skipped)} sample(s) skipped (ids: {[s for s, _ in skipped][:10]}...)."
     return True, msg
 
-
-# ---------------------------------------------------------------------------
-# Command line
-# ---------------------------------------------------------------------------
+### --- Command Line --- ###
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Generate the ant-polymorphism ML dataset.")
@@ -451,14 +419,12 @@ def main() -> None:
     print(msg)
     raise SystemExit(0 if ok else 1)
 
-
 def _running_in_notebook() -> bool:
     """True inside Jupyter / VS Code notebooks, where the CLI must not start."""
     try:
-        return get_ipython().__class__.__name__ == "ZMQInteractiveShell"  # type: ignore[name-defined]
+        return get_ipython().__class__.__name__ == "ZMQInteractiveShell" 
     except NameError:
         return False
-
 
 if __name__ == "__main__" and not _running_in_notebook():
     main()
