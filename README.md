@@ -1,10 +1,11 @@
 # ant_life_cycle_simulation_and_ml
-This repository is for a project that investigate the ability of various machine learning models to understand the maintenance in a polymorphic state of a de novo caste antagonistic allele on multiple generations in a structured ant population. This repository contains the following:
+This repository is for a project that investigate the ability of various machine learning models to understand the maintenance in a polymorphic state of a de novo caste antagonistic allele on multiple generations in a structured ant population. It will first explore as simpler biological model that is understandable even without machine learning. Then, we will proceed in as second notebook, with a more complex model adding the male as a third antagonism. On a more practical side, this repository contains the following:
 
 1. **README.md and .gitignore files:** The first one (README.md) contains some general information about this project and the second one contains useless additionnal outputs.
-2. **ant_dataset_generator.py:** This is the script that has been used to generate the data. If you want to generate data again; all you need to know about how to achieve this in the notebook ant_project.ipynb.
-3. **ant_ml_dataset.csv:** It is a .csv file, which contains a bit more than 8000 simulations. It is the dataset that has been used in the notebook.
-4. **ant_project.ipynb:** It is the notebook in which all the machine learning has occured. It is both local and collab friendly for running. Detailed explannation about the models explored can be find in this.
-5. **ant_dataset_male_freq.py or ant_dataset_male_freq_gpu.py:** These are the scripts that have been used to generate the data for the three way cast antagonism (first one is CPU friendly and second one is GPU friendly).
+2. **dataset_generator_simple_model.py:** This is the script that has been used to generate the data for the simpler biological model (with only two allele and two caste). If you want to generate data again; all you need to know about how to achieve this in the notebook 1.1-simple-ant-model-analysis.ipynb.
+3. **ant_simple_model_dataset.csv:** It is a .csv file, which contains a bit more than 8000 simulations. It is the dataset that has been used in the notebook.
+4. **1.1-simple-ant-model-analysis.ipynb:** It is the notebook in which all the machine learning has been realised for the simpler biological model. It is both local and collab friendly for running. Detailed explanation about the models explored can be find in this.
+5. **dataset_generator_3way_model_on_CPU.py or dataset_generator_3way_model_on_GPU.py:** These are the scripts that have been used to generate the data for more complex biological model with the three way cast antagonism (first one is CPU friendly and second one is GPU friendly).
+6. **1.2-3way-ant-model-analysis.ipynb:** It is the notebook in which all the machine learning has been realised for the more complex biological model. It is both local and collab friendly for running. Detailed explanation about the models explored can be find in this.
 
-Now, if you want to try and vizualize a bit more what is happening in term of machine learning models, you may open the ant_project.ipynb. It will guide you along each steps of the way.
+Now, if you want to try and vizualize a bit more what is happening in term of machine learning models, you may open first the 1.1-simple-ant-model-analysis.ipynb and then the 1.2-3way-ant-model-analysis.ipynb. Those will guide you along each steps of the way.

@@ -56,7 +56,7 @@ try:
 except ImportError:  # Reported cleanly by generate_dataset_gpu.
     torch = None
 
-import ant_dataset_male_freq as cpu  # Shared design, validation, targets, defaults.
+import dataset_generator_3way_model_on_CPU as cpu  # Shared design, validation, targets, defaults.
 
 FLOAT_KEYS = ("s", "e", "mq", "mm", "zw", "zq", "zm", "sq", "sw", "sm", "dq", "dw", "om")
 
