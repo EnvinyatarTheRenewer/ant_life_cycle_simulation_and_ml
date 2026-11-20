@@ -1,0 +1,8 @@
+,Accuracy,Accuracy,Accuracy,Accuracy,ROC AUC,ROC AUC,ROC AUC,ROC AUC
+,Train,Validation,Val. sd,Test,Train,Validation,Val. sd,Test
+Model,,,,,,,,
+Logistic Regression,0.7692,0.7693,0.0103,0.7679,0.8068,0.8057,0.0106,0.8059
+Decision Tree,0.857,0.8263,0.0163,0.8141,0.9229,0.8787,0.0125,0.8797
+Random Forest,0.8725,0.8526,0.0079,0.852,0.9497,0.9283,0.0042,0.9201
+XGBoost,0.9488,0.9055,0.003,0.8982,0.9877,0.965,0.0026,0.9625
+Multilayer Perceptron,0.9369,0.9117,0.0054,0.9033,0.9818,0.9666,0.0024,0.9594
