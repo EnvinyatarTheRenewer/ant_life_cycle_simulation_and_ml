@@ -29,3 +29,6 @@ This repository is for a **project that investigate** the ability of various **m
 2. **.gitignore files:** This one contains useless collateral outputs.
 
 *Now, if you want to try and vizualize a bit more what is happening in term of machine learning models, you may open first the 1.1-simple-ant-model-analysis.ipynb and then the 1.2-3way-ant-model-analysis.ipynb. Those will guide you along each steps of the way in a detailed manner.*
+
+**Additional Information:**
+For a global sight of the repo we sugest using the following link with git diagram: [Link to visualization](https://gitdiagram.com/envinyatartherenewer/ant_life_cycle_simulation_and_ml)
