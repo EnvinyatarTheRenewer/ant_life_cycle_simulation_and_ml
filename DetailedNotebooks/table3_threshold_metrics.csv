@@ -1,0 +1,6 @@
+Model,"threshold (F1-optimal, out-of-fold)",precision,recall,F1,MCC,balanced accuracy
+Logistic Regression,0.2158,0.3791,0.715,0.4955,0.3171,0.6877
+Decision Tree,0.4126,0.7383,0.8112,0.773,0.7044,0.8639
+Random Forest,0.414,0.826,0.8694,0.8471,0.8017,0.9081
+XGBoost,0.4581,0.8758,0.8965,0.8861,0.8526,0.9298
+Multilayer Perceptron,0.4662,0.8889,0.9093,0.899,0.8693,0.9381

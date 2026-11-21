@@ -1,0 +1,27 @@
+Model,Hyperparameter,Searched values,Chosen,Edge of range,Why this range
+Logistic Regression,C,"[0.001, 0.01, 0.1, 1.0, 10.0, 100.0]",10.0,,"Inverse regularisation strength, on a log scale. 0.001 = very strong L2 shrinkage (underfitting risk), 100 = almost none. Only 6 values, so every one is tried (grid search)."
+Decision Tree,max_depth,"[12, 13, 14]",14,at upper cap,Targets 12 to 14 to retain multi-feature interactions from Run 2 while capping leaf growth.
+Decision Tree,min_samples_leaf,"[20, 25, 30]",20,at lower bound,Keeps the floor at 20 (which unlocked Run 2 performance) and tests slightly higher stability at 25 and 30.
+Decision Tree,min_samples_split,"[50, 65, 80]",80,at upper cap,Bridges the gap between 50 and 100 to prune noisy sub-branches without choking the 40k search sample.
+Decision Tree,max_features,[0.8],0.8,,"Fixed at 0.8, which repeatedly outperformed full features and smaller subsets."
+Decision Tree,criterion,['entropy'],entropy,,"Fixed at entropy, which consistently outperformed gini on this dataset."
+Decision Tree,ccp_alpha,"[1e-05, 2e-05, 3e-05, 4e-05]",1e-05,at lower bound,Explores fine increments between 1e-5 (Run 2) and 5e-5 (Run 3) to shave off overfitting without losing signal.
+Random Forest,n_estimators,"[100, 200]",200.0,at upper cap,Keeps 100 for speed and tests 200 to ensure ensemble convergence.
+Random Forest,max_depth,"[10, 12, 14, 16]",16.0,at upper cap,"Raises the upper limit to 16 since depth 12 hit the cap, testing if deeper trees extract more signal."
+Random Forest,min_samples_split,"[30, 40, 50]",30.0,at lower bound,Refines the search around the winning value of 40.
+Random Forest,min_samples_leaf,"[10, 20, 30]",10.0,at lower bound,Keeps leaves large enough to be robust for the minority positive class (22.5% of the parameter sets).
+Random Forest,max_features,"[0.4, 0.5, 'sqrt']",0.4,,Tests feature fractions around 0.5 to maintain tree decorrelation.
+XGBoost,n_estimators,"[1000, 1500, 2000]",2000.0,at upper cap,Increased up to 2000 to give slower learning rates enough rounds to fully converge.
+XGBoost,max_depth,"[5, 6, 7, 8]",7.0,,Restricted to 5-8 to avoid deep single-tree overfitting while capturing multi-feature interactions.
+XGBoost,learning_rate,"[0.005, 0.01, 0.02]",0.02,at upper cap,Explores ultra-fine steps (0.005 and 0.01) for maximum generalisation power.
+XGBoost,subsample,"[0.8, 0.9]",0.8,at lower bound,Keeps high row fractions to ensure each tree sees plenty of data.
+XGBoost,colsample_bytree,"[0.7, 0.9]",0.9,at upper cap,Keeps feature subsampling high to prevent overly restricted trees.
+XGBoost,min_child_weight,"[3, 5]",3.0,at lower bound,Maintains structural regularization for the minority positive class (22.5% of the parameter sets).
+XGBoost,reg_alpha,"[1, 2]",1.0,at lower bound,Refines L1 regularization around the winning value of 1.
+XGBoost,reg_lambda,"[1, 2]",1.0,at lower bound,Refines L2 regularization around the winning value of 1.
+Multilayer Perceptron,hidden_layer_sizes,"[(32,), (64,), (128,), (64, 32), (128, 64), (128, 128), (64, 64, 32)]","(64, 64, 32)",,"Architecture, from one layer of 32 neurons to three layers (128, 128 or 64, 64, 32). Wide enough to model interactions between eleven inputs without hand-limiting the capacity."
+Multilayer Perceptron,activation,"['relu', 'tanh']",tanh,,"ReLU (default, fast) versus tanh (smooth, often better on small tabular data)."
+Multilayer Perceptron,alpha,"[1e-06, 1e-05, 0.0001, 0.001, 0.01, 0.1]",0.01,,"L2 penalty on the weights, on a log scale from almost none (1e-6) to strong (0.1). Controls overfitting together with early stopping."
+Multilayer Perceptron,learning_rate_init,"[0.0003, 0.001, 0.003, 0.01]",0.001,,"Initial step of Adam, on a log-like scale. Too small learns slowly, too large is unstable."
+Multilayer Perceptron,batch_size,"[128, 256, 512]",128,at lower bound,Mini-batch size. Smaller batches add noise that can help generalisation; larger ones are more stable.
+Multilayer Perceptron,max_iter,"[200, 500]",500,at upper cap,Maximum number of epochs. Early stopping normally ends training before this limit.
