@@ -23,6 +23,12 @@ This repository is for a **project that investigate** the ability of various **m
 1. **1.1-simple-ant-model-analysis.ipynb:** It is the notebook in which all the machine learning has been realised for the simpler biological model. It is both local and collab friendly for running. Detailed explanation about the models explored can be find there.
 2. **1.2-3way-ant-model-analysis.ipynb (in DetailedNotebooks):** It is the notebook in which all the machine learning has been realised for the more complex biological model. It is both local and collab friendly for running. Detailed explanation about the models explored can be find there.
 
+## Schematics
+*This folder contains the shematics for the notebooks:*
+1. **Front_pic:** Displays to hand drawn ants (a queen and a worker), purely visual.
+2. **Figure_1:** Displays the ant life cycle for the simpler biological model.
+3. **Figure_2:** Displays the relationship of the allele, phenotype and genotype.
+
 ## Additionally
 *In addition, we have those files helping with the structuring and understanding of the repository:*
 
