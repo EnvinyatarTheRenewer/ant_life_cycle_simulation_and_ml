@@ -1,5 +1,6 @@
 # ant_life_cycle_simulation_and_ml
 
+## Overview
 This repository is for a **project that investigate** the ability of various **machine learning models** to **understand the maintenance in a polymorphic** state of a de novo **caste antagonistic allele** on multiple generations in a structured ant population. It will first explore as simpler biological model that is understandable even without machine learning. Then, we will proceed in as second notebook, with **a more complex biological model** adding the male as a third category of antagonism. On a more practical side, this repository has three folders containing the following:
 
 ## DatasetGenerators
@@ -16,7 +17,7 @@ This repository is for a **project that investigate** the ability of various **m
 2. **ant_ml_3way_ant_dataset_part1.csv:** It is a .csv file, which contains a bit more than 200,000 simulations. It is the first half of the dataset that is used in the notebook 1.2-3way-ant-model-analysis.ipynb and was imulated with the dataset_generator_3way_model_on_GPU.py script.
 3. **ant_ml_3way_ant_dataset_part2.csv:** It is a .csv file, which contains a bit more than 200,000 simulations. It is the second half of the dataset that is used in the notebook 1.2-3way-ant-model-analysis.ipynb and was imulated with the dataset_generator_3way_model_on_GPU.py script.
 
-## DetailedNotebooks
+## Notebooks
 *This folder contains the detailed notebook for the machine learning and data analysis for both biological models:*
 
 1. **1.1-simple-ant-model-analysis.ipynb:** It is the notebook in which all the machine learning has been realised for the simpler biological model. It is both local and collab friendly for running. Detailed explanation about the models explored can be find there.
